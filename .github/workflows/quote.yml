@@ -24,6 +24,7 @@ jobs:
         env:
           HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
           DEAL_ID: ${{ github.event.client_payload.dealId }}
+          PAGES_BASE: ${{ vars.PAGES_BASE }}
         run: python scripts/transform.py
 
       # keep generated quotes in the repo (so old ones stay live)
