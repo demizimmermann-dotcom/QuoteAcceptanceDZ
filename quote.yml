@@ -1,0 +1,51 @@
+name: Build quote from HubSpot deal
+
+on:
+  repository_dispatch:
+    types: [hubspot_deal]
+
+# Pages publishing needs these
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Render quote
+        env:
+          HUBSPOT_TOKEN: ${{ secrets.HUBSPOT_TOKEN }}
+          DEAL_ID: ${{ github.event.client_payload.dealId }}
+        run: python scripts/transform.py
+
+      # keep generated quotes in the repo (so old ones stay live)
+      - name: Commit generated quote
+        run: |
+          git config user.name  "quote-bot"
+          git config user.email "quote-bot@users.noreply.github.com"
+          git add public/deals
+          git commit -m "Quote for deal ${{ github.event.client_payload.dealId }}" || echo "no changes"
+          git push
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
